@@ -144,6 +144,21 @@ runs `tokempic` in one step:
 ./run.sh <patient-id> summary.md      # or name the output explicitly
 ```
 
+## Claude Code plugin
+
+This repo doubles as a [Claude Code](https://docs.claude.com/en/docs/claude-code)
+plugin marketplace, so an agent can learn how to drive tokempic. Install it with:
+
+```text
+/plugin marketplace add recodelabs/tokempic
+/plugin install tokempic@tokempic
+```
+
+That adds the `using-tokempic` skill, which teaches Claude when and how to run the
+CLI (auth, flags, caching, troubleshooting). The skill lives in
+`skills/using-tokempic/`; the marketplace and plugin manifests are in
+`.claude-plugin/`.
+
 ## Develop
 
 ```bash
