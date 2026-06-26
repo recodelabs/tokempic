@@ -1,15 +1,12 @@
 #!/usr/bin/env bun
 import { parseArgs } from 'util';
 import { readFileSync, writeFileSync } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
 import { loadViews, deriveTypes } from './views';
 import { runView } from './view-runner';
 import { fetchEverything, type FetchLike } from './fhir-client';
 import { render, type RenderContext } from './render';
+import { defaultTemplate } from './default-template';
 import type { Row } from './types';
-
-const here = dirname(fileURLToPath(import.meta.url));
 
 const options = {
   patient: { type: 'string' },
@@ -44,8 +41,8 @@ export async function run(argv: string[], fetchImpl?: FetchLike): Promise<{ mark
   for (const v of views) byView[v.name] = runView(v, resources);
 
   const ctx: RenderContext = { patient: byView['demographics']?.[0] ?? {}, views: byView };
-  const templatePath = values.template ?? join(here, 'default-template.eta');
-  const markdown = render(readFileSync(templatePath, 'utf8'), ctx);
+  const template = values.template ? readFileSync(values.template, 'utf8') : defaultTemplate;
+  const markdown = render(template, ctx);
   return { markdown, out: values.out! };
 }
 
