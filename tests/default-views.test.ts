@@ -20,7 +20,7 @@ test('run() uses the embedded views when --views is omitted', async () => {
     ok: true, status: 200, async text() { return ''; }, async json() { return bundle; },
   });
 
-  const { markdown } = await run(['--patient', 'p1', '--server', 'http://example.org/fhir'], fake);
+  const { markdown } = await run(['--patient', 'p1', '--server', 'http://example.org/fhir', '--no-cache'], fake);
 
   expect(markdown).toContain('## conditions');
   expect(markdown).toContain('Hypertension');

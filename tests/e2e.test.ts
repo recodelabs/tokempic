@@ -11,7 +11,8 @@ test('end-to-end renders markdown from an $everything bundle', async () => {
   });
 
   const { markdown } = await run(
-    ['--patient', 'p1', '--server', 'http://example.org/fhir', '--views', join(import.meta.dir, '../views')],
+    ['--patient', 'p1', '--server', 'http://example.org/fhir', '--no-cache',
+     '--views', join(import.meta.dir, '../views')],
     fake,
   );
 
