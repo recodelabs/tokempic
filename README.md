@@ -45,6 +45,28 @@ The fetched resource types are derived automatically from the `resource` field o
 ViewDefinitions and passed to `Patient/$everything?_type=…`. Supply `--views ./my-views`
 to override the built-in set with your own.
 
+## Why — size and speed
+
+The point of tokempic is to turn a sprawling FHIR `$everything` bundle into something
+small enough to drop into an LLM prompt. For one example patient with the built-in views:
+
+| | Full `$everything` bundle | tokempic markdown |
+| --- | ---: | ---: |
+| Size | 72.5 KB | 5.0 KB |
+| ~Tokens (chars ÷ 4) | ~18,100 | ~1,260 |
+
+That is **~14× smaller — a ~93% reduction** in bytes and tokens, while keeping the
+clinically relevant facts. (Numbers are for a single patient and approximate; your
+mileage varies with record size and views.)
+
+Caching then cuts the wall-clock cost of repeated runs:
+
+| Run | What happens | Time |
+| --- | --- | ---: |
+| Cold | full fetch + render | ~1.7 s |
+| Incremental, no changes | `_since` probe returns empty, cache reused | ~0.8 s |
+| `--max-age` fresh | network skipped entirely | ~0.06 s |
+
 ## Caching
 
 To avoid re-pulling a patient's whole record on every run, tokempic caches the fetched
