@@ -33,3 +33,23 @@ bun run build   # produces ./tokempic
 ```bash
 bun test
 ```
+
+## Google Cloud Healthcare API
+
+```bash
+PROJECT=my-project
+LOCATION=us-central1
+DATASET=my-dataset
+STORE=my-store
+BASE="https://healthcare.googleapis.com/v1/projects/$PROJECT/locations/$LOCATION/datasets/$DATASET/fhirStores/$STORE/fhir"
+
+bun run src/cli.ts \
+  --patient <patient-id> \
+  --server "$BASE" \
+  --token "$(gcloud auth print-access-token)" \
+  --views ./views \
+  --out summary.md
+```
+
+The bearer token from `gcloud auth print-access-token` is short-lived; re-run for a fresh one.
+Requires `roles/healthcare.fhirResourceReader` on the dataset or store.
