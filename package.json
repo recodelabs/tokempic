@@ -1,0 +1,16 @@
+{
+  "name": "tokempic",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": { "tokempic": "./src/cli.ts" },
+  "scripts": {
+    "build": "bun build ./src/cli.ts --compile --outfile tokempic"
+  },
+  "dependencies": {
+    "eta": "^3.4.0",
+    "fhirpath": "^3.10.5"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}
