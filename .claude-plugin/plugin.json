@@ -1,0 +1,11 @@
+{
+  "name": "tokempic",
+  "description": "Turn one patient's FHIR record into a compact, token-lean Markdown summary for an LLM, using the tokempic CLI.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Recode Labs"
+  },
+  "homepage": "https://github.com/recodelabs/tokempic",
+  "repository": "https://github.com/recodelabs/tokempic",
+  "license": "MIT"
+}
