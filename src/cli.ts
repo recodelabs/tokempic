@@ -6,13 +6,14 @@ import { runView } from './view-runner';
 import { fetchEverything, type FetchLike } from './fhir-client';
 import { render, type RenderContext } from './render';
 import { defaultTemplate } from './default-template';
+import { defaultViews } from './default-views';
 import type { Row } from './types';
 
 const options = {
   patient: { type: 'string' },
   server: { type: 'string' },
   token: { type: 'string' },
-  views: { type: 'string', default: './views' },
+  views: { type: 'string' },
   template: { type: 'string' },
   out: { type: 'string', default: '-' },
   since: { type: 'string' },
@@ -24,7 +25,7 @@ export async function run(argv: string[], fetchImpl?: FetchLike): Promise<{ mark
     throw new Error('Both --patient and --server are required');
   }
 
-  const views = loadViews(values.views!);
+  const views = values.views ? loadViews(values.views) : defaultViews;
   const types = deriveTypes(views);
   const resources = await fetchEverything(
     {

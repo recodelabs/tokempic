@@ -1,0 +1,28 @@
+import { test, expect } from 'bun:test';
+import { join } from 'path';
+import { readFileSync } from 'fs';
+import { defaultViews } from '../src/default-views';
+import { deriveTypes } from '../src/views';
+import { run } from '../src/cli';
+import type { FetchLike } from '../src/fhir-client';
+
+test('defaultViews is the embedded 9-section set', () => {
+  expect(defaultViews.length).toBe(9);
+  const names = defaultViews.map((v) => v.name);
+  expect(names).toContain('conditions');
+  expect(names).toContain('labs');
+  expect(deriveTypes(defaultViews)).toContain('Observation');
+});
+
+test('run() uses the embedded views when --views is omitted', async () => {
+  const bundle = JSON.parse(readFileSync(join(import.meta.dir, 'fixtures/everything-bundle.json'), 'utf8'));
+  const fake: FetchLike = async () => ({
+    ok: true, status: 200, async text() { return ''; }, async json() { return bundle; },
+  });
+
+  const { markdown } = await run(['--patient', 'p1', '--server', 'http://example.org/fhir'], fake);
+
+  expect(markdown).toContain('## conditions');
+  expect(markdown).toContain('Hypertension');
+  expect(markdown).toContain('HbA1c');
+});
