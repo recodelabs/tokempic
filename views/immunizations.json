@@ -1,0 +1,9 @@
+{
+  "name": "immunizations",
+  "resource": "Immunization",
+  "select": [{ "column": [
+    { "name": "vaccine", "path": "vaccineCode.coding.first().display" },
+    { "name": "date", "path": "occurrenceDateTime" },
+    { "name": "status", "path": "status" }
+  ] }]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "conditions",
+  "resource": "Condition",
+  "select": [{ "column": [
+    { "name": "code", "path": "code.coding.first().code" },
+    { "name": "display", "path": "code.coding.first().display" },
+    { "name": "clinicalStatus", "path": "clinicalStatus.coding.first().code" },
+    { "name": "onset", "path": "onsetDateTime" }
+  ] }]
+}

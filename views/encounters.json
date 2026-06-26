@@ -1,0 +1,9 @@
+{
+  "name": "encounters",
+  "resource": "Encounter",
+  "select": [{ "column": [
+    { "name": "type", "path": "type.first().coding.first().display" },
+    { "name": "start", "path": "period.start" },
+    { "name": "end", "path": "period.end" }
+  ] }]
+}
