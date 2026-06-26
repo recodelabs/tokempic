@@ -1,0 +1,9 @@
+{
+  "name": "demographics",
+  "resource": "Patient",
+  "select": [{ "column": [
+    { "name": "name", "path": "name.first().given.first() & ' ' & name.first().family" },
+    { "name": "birthDate", "path": "birthDate" },
+    { "name": "gender", "path": "gender" }
+  ] }]
+}
