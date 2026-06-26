@@ -1,7 +1,9 @@
 export const defaultTemplate = `# Patient Summary<% if (it.patient.name) { %> — <%= it.patient.name %><% } %><% if (it.patient.birthDate) { %> (<%= it.patient.birthDate %>)<% } %>
-<% Object.keys(it.views).forEach(function (name) { %>
+<% Object.keys(it.views).forEach(function (name) { -%>
+
 ## <%= name %>
-<% it.views[name].forEach(function (row) { %>- <%= Object.values(row).filter(function (v) { return v !== null && v !== undefined && v !== ''; }).join(' | ') %>
-<% }) %>
-<% }) %>
+<% it.views[name].forEach(function (row) { -%>
+- <%= Object.values(row).filter(function (v) { return v !== null && v !== undefined && v !== ''; }).join(' | ') %>
+<% }) -%>
+<% }) -%>
 `;

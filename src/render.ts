@@ -7,6 +7,6 @@ export interface RenderContext {
 }
 
 export function render(template: string, ctx: RenderContext): string {
-  const eta = new Eta({ autoEscape: false });
+  const eta = new Eta({ autoEscape: false, autoTrim: false });
   return eta.renderString(template, ctx);
 }
