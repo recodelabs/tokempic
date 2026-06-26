@@ -1,0 +1,9 @@
+{
+  "name": "procedures",
+  "resource": "Procedure",
+  "select": [{ "column": [
+    { "name": "code", "path": "code.coding.first().code" },
+    { "name": "display", "path": "code.coding.first().display" },
+    { "name": "performed", "path": "performedDateTime" }
+  ] }]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "allergies",
+  "resource": "AllergyIntolerance",
+  "select": [{ "column": [
+    { "name": "substance", "path": "code.coding.first().display" },
+    { "name": "criticality", "path": "criticality" },
+    { "name": "clinicalStatus", "path": "clinicalStatus.coding.first().code" }
+  ] }]
+}

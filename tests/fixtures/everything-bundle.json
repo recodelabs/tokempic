@@ -1,0 +1,9 @@
+{
+  "resourceType": "Bundle",
+  "type": "searchset",
+  "entry": [
+    { "resource": { "resourceType": "Patient", "id": "p1", "name": [{ "given": ["Jane"], "family": "Smith" }], "birthDate": "1980-04-12", "gender": "female" } },
+    { "resource": { "resourceType": "Condition", "id": "c1", "code": { "coding": [{ "code": "I10", "display": "Hypertension" }] }, "clinicalStatus": { "coding": [{ "code": "active" }] }, "onsetDateTime": "2019-03-01" } },
+    { "resource": { "resourceType": "Observation", "id": "o1", "category": [{ "coding": [{ "code": "laboratory" }] }], "code": { "coding": [{ "code": "4548-4", "display": "HbA1c" }] }, "effectiveDateTime": "2026-06-01", "valueQuantity": { "value": 7.2, "unit": "%" } } }
+  ]
+}

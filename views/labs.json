@@ -1,0 +1,12 @@
+{
+  "name": "labs",
+  "resource": "Observation",
+  "where": [{ "path": "category.coding.where(code='laboratory').exists()" }],
+  "select": [{ "column": [
+    { "name": "date", "path": "effectiveDateTime" },
+    { "name": "code", "path": "code.coding.first().code" },
+    { "name": "display", "path": "code.coding.first().display" },
+    { "name": "value", "path": "valueQuantity.value" },
+    { "name": "unit", "path": "valueQuantity.unit" }
+  ] }]
+}

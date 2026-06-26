@@ -1,0 +1,9 @@
+{
+  "name": "medications",
+  "resource": "MedicationRequest",
+  "select": [{ "column": [
+    { "name": "medication", "path": "medicationCodeableConcept.coding.first().display" },
+    { "name": "status", "path": "status" },
+    { "name": "authoredOn", "path": "authoredOn" }
+  ] }]
+}
