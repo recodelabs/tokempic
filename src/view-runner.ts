@@ -20,6 +20,13 @@ export function projectSelect(node: unknown, select: SelectClause[]): Row[] {
         return next;
       });
     }
+    if (clause.forEach) {
+      const elements = fhirpath.evaluate(node, clause.forEach);
+      const nested = clause.select ?? [];
+      rows = rows.flatMap((row) =>
+        elements.flatMap((el) => projectSelect(el, nested).map((nr) => ({ ...row, ...nr }))),
+      );
+    }
   }
   return rows;
 }
