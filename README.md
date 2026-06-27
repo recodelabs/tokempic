@@ -1,5 +1,9 @@
 # Tokempic
 
+<p align="center">
+  <img src="tokempic.png" alt="Tokempic — once-daily CLI for prompt obesity" width="320">
+</p>
+
 Fetch one patient's record from a FHIR server and render a compact, token-lean
 Markdown summary for an LLM. What is included is defined by standard SQL-on-FHIR
 ViewDefinitions; how it is laid out is defined by an `eta` template.
