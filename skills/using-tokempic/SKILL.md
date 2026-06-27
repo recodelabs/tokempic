@@ -110,7 +110,7 @@ Practical guidance:
   ViewDefinition JSON files (one per section). Each defines a `name`, a `resource`
   type, and `select`/`where` clauses using FHIRPath. The built-in set covers
   demographics, conditions, medications, allergies, labs, vitals, procedures,
-  immunizations, and encounters.
+  immunizations, encounters, and relatedpersons.
 - To change *how* it's laid out, pass `--template` an `eta` template. The render
   context exposes `it.patient` (the first demographics row) and `it.views` (a map of
   view name → array of rows).

@@ -8,6 +8,7 @@ import vitals from '../views/vitals.json';
 import procedures from '../views/procedures.json';
 import immunizations from '../views/immunizations.json';
 import encounters from '../views/encounters.json';
+import relatedpersons from '../views/relatedpersons.json';
 
 // Statically imported so `bun build --compile` bundles them into the standalone
 // binary. This is the default view set used when `--views` is not supplied, so
@@ -22,4 +23,5 @@ export const defaultViews: ViewDefinition[] = [
   procedures,
   immunizations,
   encounters,
+  relatedpersons,
 ] as unknown as ViewDefinition[];

@@ -6,12 +6,14 @@ import { deriveTypes } from '../src/views';
 import { run } from '../src/cli';
 import type { FetchLike } from '../src/fhir-client';
 
-test('defaultViews is the embedded 9-section set', () => {
-  expect(defaultViews.length).toBe(9);
+test('defaultViews is the embedded 10-section set', () => {
+  expect(defaultViews.length).toBe(10);
   const names = defaultViews.map((v) => v.name);
   expect(names).toContain('conditions');
   expect(names).toContain('labs');
+  expect(names).toContain('relatedpersons');
   expect(deriveTypes(defaultViews)).toContain('Observation');
+  expect(deriveTypes(defaultViews)).toContain('RelatedPerson');
 });
 
 test('run() uses the embedded views when --views is omitted', async () => {
