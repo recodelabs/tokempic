@@ -3,5 +3,6 @@ dist/
 *.log
 tokempic
 *-summary.md
+docs/superpowers/
 
 .env

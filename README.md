@@ -70,6 +70,26 @@ The resource types to fetch are derived automatically from the `resource` field
 of the ViewDefinitions and passed to `Patient/$everything?_type=…`. Pass
 `--views ./my-views` to swap in your own.
 
+## Example output
+
+[`examples/george-jetson.md`](examples/george-jetson.md) is a sample summary
+produced by the built-in views. It opens like this:
+
+```markdown
+# Patient Summary — George Jetson (1999-03-04)
+
+## demographics
+- George Jetson | 1999-03-04 | male
+
+## conditions
+- 38341003 | Essential hypertension | active | 2024-04-12
+- 54150009 | Upper respiratory infection | active | 2026-04-02
+...
+
+## relatedpersons
+- Parent of
+```
+
 ## ViewDefinitions — what goes in the summary
 
 Tokempic doesn't hard-code which fields make the cut. Every section of the
@@ -81,9 +101,9 @@ out of it*. The built-in set lives in [`views/`](views/), one file per section:
 views/
 ├── demographics.json   immunizations.json
 ├── conditions.json     encounters.json
-├── medications.json    labs.json
-├── allergies.json      vitals.json
-└── procedures.json
+├── medications.json    relatedpersons.json
+├── allergies.json      labs.json
+├── procedures.json     vitals.json
 ```
 
 ### Anatomy of a ViewDefinition

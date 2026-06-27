@@ -1,0 +1,10 @@
+{
+  "name": "relatedpersons",
+  "resource": "RelatedPerson",
+  "select": [{ "column": [
+    { "name": "name", "path": "name.first().select(given.first() & ' ' & family)" },
+    { "name": "relationship", "path": "relationship.first().coding.first().display" },
+    { "name": "gender", "path": "gender" },
+    { "name": "phone", "path": "telecom.where(system='phone').first().value" }
+  ] }]
+}
