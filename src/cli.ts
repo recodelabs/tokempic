@@ -5,6 +5,7 @@ import { join } from 'path';
 import { loadViews, deriveTypes } from './views';
 import { runView } from './view-runner';
 import { fetchEverything, type FetchLike } from './fhir-client';
+import { hydrateRelatedPersons } from './related-person';
 import { render, type RenderContext } from './render';
 import { defaultTemplate } from './default-template';
 import { defaultViews } from './default-views';
@@ -63,6 +64,7 @@ export async function run(argv: string[], fetchImpl?: FetchLike): Promise<RunRes
 
   if (values['no-cache']) {
     resources = await fetchEverything({ ...fetchOpts, since: values.since }, fetchImpl);
+    await hydrateRelatedPersons(resources, { server: fetchOpts.server, token }, fetchImpl);
     source = 'no-cache';
   } else {
     const dir = values['cache-dir'] ?? defaultCacheDir();
@@ -83,12 +85,14 @@ export async function run(argv: string[], fetchImpl?: FetchLike): Promise<RunRes
       );
       changed = deltas.length > 0;
       resources = changed ? mergeResources(entry.resources, deltas) : entry.resources;
+      if (changed) await hydrateRelatedPersons(resources, { server: fetchOpts.server, token }, fetchImpl);
       source = 'incremental';
       const highWater = maxLastUpdated(resources) ?? entry.highWater;
       saveCache(path, { version: CACHE_VERSION, resources, highWater, fetchedAt: new Date().toISOString() });
     } else {
       // Cold cache (or --refresh): full fetch.
       resources = await fetchEverything({ ...fetchOpts, since: values.since }, fetchImpl);
+      await hydrateRelatedPersons(resources, { server: fetchOpts.server, token }, fetchImpl);
       source = 'full';
       const out: CacheEntry = {
         version: CACHE_VERSION,

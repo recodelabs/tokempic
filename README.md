@@ -87,7 +87,7 @@ produced by the built-in views. It opens like this:
 ...
 
 ## relatedpersons
-- Parent of
+- Elroy Jetson | Parent of | male | 2025-04-01
 ```
 
 ## ViewDefinitions — what goes in the summary
@@ -173,9 +173,17 @@ to fetch (`FamilyMemberHistory` gets added to `Patient/$everything?_type=…`
 automatically), and the default template renders a `## family-history` section
 for any view it finds. New resource, new section, zero template edits.
 
-> **Two things worth knowing:**
+> **Three things worth knowing:**
 > - The view named **`demographics`** is special — its first row populates the
 >   patient header (name / birth date). Keep one around if you want that line.
+> - **`RelatedPerson`** resources are resolved: some FHIR stores keep a
+>   RelatedPerson as a thin link (relationship only, no name) that points at a
+>   separate `Patient` record via an identifier. Tokempic detects these,
+>   fetches the linked Patient directly (`GET Patient/{id}`), and fills in the
+>   related person's name / gender / birth date before the view runs. The linked
+>   Patient is used only for this — it never leaks into the `demographics`
+>   section. See [`src/related-person.ts`](src/related-person.ts) (the identifier
+>   system is a constant there).
 > - Want a different *layout* (not just different fields)? That's the template's
 >   job, not the ViewDefinition's — pass `--template <file>`.
 
