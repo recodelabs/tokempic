@@ -4,103 +4,207 @@
   <img src="tokempic.png" alt="Tokempic — once-daily CLI for prompt obesity" width="320">
 </p>
 
-Fetch one patient's record from a FHIR server and render a compact, token-lean
-Markdown summary for an LLM. What is included is defined by standard SQL-on-FHIR
-ViewDefinitions; how it is laid out is defined by an `eta` template.
+**Once-daily CLI for prompt obesity. Clinically proven token loss.**
+
+Tokempic pulls one patient's record from a FHIR server and renders a compact,
+token-lean Markdown summary you can drop into an LLM prompt. A full
+`$everything` bundle is mostly empty calories; tokempic trims it to the
+clinically relevant facts and nothing else.
+
+- **What** goes in the summary is defined by standard
+  [SQL-on-FHIR ViewDefinitions](#viewdefinitions--what-goes-in-the-summary) —
+  plain JSON, fully configurable.
+- **How** it's laid out is defined by an [`eta`](https://eta.js.org/) template.
+
+No side effects. Do not feed after midnight. Results may vary.
 
 ## Install
 
-Tokempic runs as a `tokempic` command. Pick one:
+Tokempic runs as a `tokempic` command. Pick your dosage:
 
-**Standalone binary** (no runtime needed afterwards):
+**Standalone binary** — no runtime required afterwards:
 
 ```bash
-bun run build      # produces ./tokempic — a self-contained executable
+bun run build      # produces ./tokempic, a self-contained executable
+mv tokempic /usr/local/bin/   # optional: take it anywhere on your PATH
 ```
 
 The binary embeds the default ViewDefinitions and template, so it works from any
-directory with no extra files. Move it onto your `PATH` (e.g. `mv tokempic /usr/local/bin/`)
-to call `tokempic` from anywhere.
+directory with no extra files.
 
-**Global command via Bun** (for development):
+**Global command via Bun** — for development:
 
 ```bash
-bun link           # makes `tokempic` available on your PATH, backed by Bun
+bun link           # puts `tokempic` on your PATH, backed by Bun
 ```
 
-Either way you then invoke `tokempic` directly instead of `bun run src/cli.ts`.
+Either way, you call `tokempic` directly instead of `bun run src/cli.ts`.
 
 ## Usage
 
 ```bash
 tokempic \
   --patient <id> \
-  --server https://fhir.example.org/fhir \
-  --token "$(gcloud auth print-access-token)" \
-  --out summary.md
+  --server  https://fhir.example.org/fhir \
+  --token   "$(gcloud auth print-access-token)" \
+  --out     summary.md
 ```
 
-Flags: `--patient` (required), `--server` (required), `--token` (or `TOKEMPIC_TOKEN`),
-`--views` (a directory of ViewDefinition JSON files; defaults to the built-in set),
-`--template` (defaults to the built-in layout), `--out` (default stdout), `--since`,
-plus the caching flags below.
+Options:
 
-The fetched resource types are derived automatically from the `resource` field of the
-ViewDefinitions and passed to `Patient/$everything?_type=…`. Supply `--views ./my-views`
-to override the built-in set with your own.
+| Option | Description |
+| --- | --- |
+| `--patient <id>` | Patient to summarize. **Required.** |
+| `--server <url>` | FHIR base URL. **Required.** |
+| `--token <jwt>` | Bearer token. Falls back to `$TOKEMPIC_TOKEN`. |
+| `--out <file>` | Where to write the Markdown. Default: stdout. |
+| `--views <dir>` | Directory of ViewDefinition JSON files. Default: built-in set. |
+| `--template <file>` | `eta` layout template. Default: built-in layout. |
+| `--since <date>` | Only fetch resources updated since this point. |
+| `--max-age <dur>` | Skip the server if the cache is younger than this. |
+| `--refresh` | Ignore the cache and do a full fetch. |
+| `--no-cache` | Don't read or write the cache at all. |
+| `--cache-dir <dir>` | Store cache files somewhere other than `~/.cache/tokempic/`. |
+
+The resource types to fetch are derived automatically from the `resource` field
+of the ViewDefinitions and passed to `Patient/$everything?_type=…`. Pass
+`--views ./my-views` to swap in your own.
+
+## ViewDefinitions — what goes in the summary
+
+Tokempic doesn't hard-code which fields make the cut. Every section of the
+summary is a [SQL-on-FHIR **ViewDefinition**](https://sql-on-fhir.org/ig/latest/) —
+a small JSON file that says *which resource to read* and *which fields to pull
+out of it*. The built-in set lives in [`views/`](views/), one file per section:
+
+```
+views/
+├── demographics.json   immunizations.json
+├── conditions.json     encounters.json
+├── medications.json    labs.json
+├── allergies.json      vitals.json
+└── procedures.json
+```
+
+### Anatomy of a ViewDefinition
+
+Here's the labs view (`views/labs.json`) in full:
+
+```json
+{
+  "name": "labs",
+  "resource": "Observation",
+  "where": [{ "path": "category.coding.where(code='laboratory').exists()" }],
+  "select": [{ "column": [
+    { "name": "date",    "path": "effectiveDateTime" },
+    { "name": "code",    "path": "code.coding.first().code" },
+    { "name": "display", "path": "code.coding.first().display" },
+    { "name": "value",   "path": "valueQuantity.value" },
+    { "name": "unit",    "path": "valueQuantity.unit" }
+  ] }]
+}
+```
+
+| Field | What it does |
+| --- | --- |
+| `name` | Section name. Becomes the `## <name>` heading in the output. |
+| `resource` | The FHIR resource type to read (e.g. `Observation`, `Condition`). |
+| `where` | Optional [FHIRPath](https://hl7.org/fhirpath/) filters — keep only resources that match. Here: only `laboratory` observations. |
+| `select[].column[]` | The columns to extract. Each has a `name` and a FHIRPath `path`. |
+
+Need one row per repeating element (e.g. each component of a blood-pressure
+reading)? A `select` clause also supports `forEach`, which walks a FHIRPath
+collection and emits a row per match:
+
+```json
+{ "forEach": "component", "select": [{ "column": [
+  { "name": "code",  "path": "code.coding.first().display" },
+  { "name": "value", "path": "valueQuantity.value" }
+] }] }
+```
+
+### Adding a resource (or editing an existing one)
+
+1. **Copy the built-in views you want to keep into a directory of your own.**
+   `--views <dir>` *replaces* the built-in set — it doesn't merge with it — so
+   start from the files in [`views/`](views/) rather than from scratch.
+
+2. **Drop in a new `<section>.json`.** Say you want family history:
+
+   ```json
+   {
+     "name": "family-history",
+     "resource": "FamilyMemberHistory",
+     "select": [{ "column": [
+       { "name": "relation", "path": "relationship.coding.first().display" },
+       { "name": "condition", "path": "condition.code.coding.first().display" }
+     ] }]
+   }
+   ```
+
+3. **Run with `--views`:**
+
+   ```bash
+   tokempic --patient <id> --server "$BASE" --token "$TOK" --views ./my-views --out summary.md
+   ```
+
+That's it — no other wiring. Tokempic reads the `resource` fields to decide what
+to fetch (`FamilyMemberHistory` gets added to `Patient/$everything?_type=…`
+automatically), and the default template renders a `## family-history` section
+for any view it finds. New resource, new section, zero template edits.
+
+> **Two things worth knowing:**
+> - The view named **`demographics`** is special — its first row populates the
+>   patient header (name / birth date). Keep one around if you want that line.
+> - Want a different *layout* (not just different fields)? That's the template's
+>   job, not the ViewDefinition's — pass `--template <file>`.
 
 ## Why — size and speed
 
-The point of tokempic is to turn a sprawling FHIR `$everything` bundle into something
-small enough to drop into an LLM prompt. For one example patient with the built-in views:
+The whole point: turn a sprawling FHIR `$everything` bundle into something small
+enough to fit in a prompt. For one example patient with the built-in views:
 
 | | Full `$everything` bundle | tokempic markdown |
 | --- | ---: | ---: |
 | Size | 72.5 KB | 5.0 KB |
 | ~Tokens (chars ÷ 4) | ~18,100 | ~1,260 |
 
-That is **~14× smaller — a ~93% reduction** in bytes and tokens, while keeping the
-clinically relevant facts. (Numbers are for a single patient and approximate; your
-mileage varies with record size and views.)
+That's **~14× smaller — a ~93% reduction** in bytes and tokens, while keeping the
+facts that matter. (One patient, approximate; your mileage varies with record
+size and views. As they say on the label: individual results not guaranteed.)
 
-Caching then cuts the wall-clock cost of repeated runs:
+Caching then cuts the wall-clock cost of repeat runs:
 
 | Run | What happens | Time |
 | --- | --- | ---: |
 | Cold | full fetch + render | ~1.7 s |
-| Incremental, no changes | `_since` probe returns empty, cache reused | ~0.8 s |
+| Incremental, no changes | `_since` probe comes back empty, cache reused | ~0.8 s |
 | `--max-age` fresh | network skipped entirely | ~0.06 s |
 
 ## Caching
 
-To avoid re-pulling a patient's whole record on every run, tokempic caches the fetched
-resources under `~/.cache/tokempic/` (override with `XDG_CACHE_HOME` or `--cache-dir`),
-keyed by `(server, patient, viewset)`.
+To avoid re-pulling a patient's whole record on every run, tokempic caches the
+fetched resources under `~/.cache/tokempic/` (override with `XDG_CACHE_HOME` or
+`--cache-dir`), keyed by `(server, patient, viewset)`.
 
-By default, runs are **incremental**: tokempic remembers the highest `meta.lastUpdated`
-it has seen and asks the server for only what changed since
-(`Patient/$everything?_since=…`). If nothing changed, the delta comes back empty and the
-cached data is reused — a single tiny request instead of a full paginated pull. New and
-updated resources are merged into the cache.
-
-Caching flags:
-
-- `--max-age <dur>` — if the cache is younger than this, skip the server **entirely**
-  (offline / fastest path). Accepts `30s`, `10m`, `2h`, `1d`, or bare seconds.
-- `--refresh` — ignore the cache and do a full fetch (also rebuilds the cache).
-- `--no-cache` — bypass the cache completely; do not read or write it.
-- `--cache-dir <dir>` — store cache files somewhere other than `~/.cache/tokempic/`.
+By default, runs are **incremental**: tokempic remembers the highest
+`meta.lastUpdated` it has seen and asks the server for only what changed since
+(`Patient/$everything?_since=…`). If nothing changed, the delta comes back empty
+and the cached data is reused — one tiny request instead of a full paginated
+pull. New and updated resources are merged into the cache.
 
 ```bash
-tokempic --patient <id> --server "$BASE" --token "$TOK" --out s.md             # incremental
+tokempic --patient <id> --server "$BASE" --token "$TOK" --out s.md              # incremental
 tokempic --patient <id> --server "$BASE" --token "$TOK" --max-age 1h --out s.md # skip server if cache < 1h old
 tokempic --patient <id> --server "$BASE" --token "$TOK" --refresh --out s.md    # force full refresh
 ```
 
-> **Caveat — deletions:** incremental fetches detect new and updated resources but not
-> *deletions* (a removed resource simply stops appearing in `_since` results, with no
-> tombstone). A resource deleted on the server lingers in the cache until you run with
-> `--refresh`.
+`--max-age` accepts `30s`, `10m`, `2h`, `1d`, or bare seconds.
+
+> **Caveat — deletions:** incremental fetches detect new and updated resources
+> but not *deletions* (a removed resource just stops appearing in `_since`
+> results, with no tombstone). A resource deleted on the server lingers in the
+> cache until you run `--refresh`.
 
 ## Google Cloud Healthcare API
 
@@ -113,18 +217,18 @@ BASE="https://healthcare.googleapis.com/v1/projects/$PROJECT/locations/$LOCATION
 
 tokempic \
   --patient <patient-id> \
-  --server "$BASE" \
-  --token "$(gcloud auth print-access-token)" \
-  --out summary.md
+  --server  "$BASE" \
+  --token   "$(gcloud auth print-access-token)" \
+  --out     summary.md
 ```
 
-The bearer token from `gcloud auth print-access-token` is short-lived; re-run for a fresh one.
-Requires `roles/healthcare.fhirResourceReader` on the dataset or store.
+The token from `gcloud auth print-access-token` is short-lived, so re-run for a
+fresh one. Requires `roles/healthcare.fhirResourceReader` on the dataset or store.
 
 ### Convenience wrapper (`.env` + `run.sh`)
 
-Rather than retyping the server URL and service account each time, keep them in a
-`.env` next to the binary (git-ignored — it holds the FHIR store coordinates):
+Tired of retyping the server URL and service account? Keep them in a `.env` next
+to the binary (git-ignored — it holds your FHIR store coordinates):
 
 ```bash
 # .env
@@ -132,7 +236,7 @@ SA=my-sa@my-project.iam.gserviceaccount.com
 BASE=https://healthcare.googleapis.com/v1/projects/my-project/locations/us-central1/datasets/my-dataset/fhirStores/my-store/fhir
 ```
 
-`tokempic` itself does not read `.env`, so either source it before calling the
+`tokempic` itself doesn't read `.env`, so either source it before calling the
 binary directly:
 
 ```bash
@@ -151,15 +255,15 @@ runs `tokempic` in one step:
 ## Claude Code plugin
 
 This repo doubles as a [Claude Code](https://docs.claude.com/en/docs/claude-code)
-plugin marketplace, so an agent can learn how to drive tokempic. Install it with:
+plugin marketplace, so an agent can learn to drive tokempic for you:
 
 ```text
 /plugin marketplace add recodelabs/tokempic
 /plugin install tokempic@tokempic
 ```
 
-That adds the `using-tokempic` skill, which teaches Claude when and how to run the
-CLI (auth, flags, caching, troubleshooting). The skill lives in
+That adds the `using-tokempic` skill, which teaches Claude when and how to run
+the CLI (auth, flags, caching, troubleshooting). The skill lives in
 `skills/using-tokempic/`; the marketplace and plugin manifests are in
 `.claude-plugin/`.
 
@@ -170,3 +274,5 @@ bun install
 bun test
 bun run src/cli.ts --patient <id> --server <url>   # run from source without installing
 ```
+</content>
+</invoke>
