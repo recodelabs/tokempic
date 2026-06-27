@@ -72,14 +72,14 @@ of the ViewDefinitions and passed to `Patient/$everything?_type=…`. Pass
 
 ## Example output
 
-[`examples/matt-berg.md`](examples/matt-berg.md) is a real summary produced by
-the built-in views. It opens like this:
+[`examples/george-jetson.md`](examples/george-jetson.md) is a sample summary
+produced by the built-in views. It opens like this:
 
 ```markdown
-# Patient Summary — Matt Berg (1999-03-04)
+# Patient Summary — George Jetson (1999-03-04)
 
 ## demographics
-- Matt Berg | 1999-03-04 | male
+- George Jetson | 1999-03-04 | male
 
 ## conditions
 - 38341003 | Essential hypertension | active | 2024-04-12
