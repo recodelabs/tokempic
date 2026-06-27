@@ -11,7 +11,9 @@ token-lean Markdown summary you can drop into an LLM prompt. A full
 `$everything` bundle is mostly empty calories; tokempic trims it to the
 clinically relevant facts and nothing else.
 
-- **What** goes in the summary is defined by standard SQL-on-FHIR ViewDefinitions.
+- **What** goes in the summary is defined by standard
+  [SQL-on-FHIR ViewDefinitions](#viewdefinitions--what-goes-in-the-summary) —
+  plain JSON, fully configurable.
 - **How** it's laid out is defined by an [`eta`](https://eta.js.org/) template.
 
 No side effects. Do not feed after midnight. Results may vary.
@@ -67,6 +69,95 @@ Options:
 The resource types to fetch are derived automatically from the `resource` field
 of the ViewDefinitions and passed to `Patient/$everything?_type=…`. Pass
 `--views ./my-views` to swap in your own.
+
+## ViewDefinitions — what goes in the summary
+
+Tokempic doesn't hard-code which fields make the cut. Every section of the
+summary is a [SQL-on-FHIR **ViewDefinition**](https://sql-on-fhir.org/ig/latest/) —
+a small JSON file that says *which resource to read* and *which fields to pull
+out of it*. The built-in set lives in [`views/`](views/), one file per section:
+
+```
+views/
+├── demographics.json   immunizations.json
+├── conditions.json     encounters.json
+├── medications.json    labs.json
+├── allergies.json      vitals.json
+└── procedures.json
+```
+
+### Anatomy of a ViewDefinition
+
+Here's the labs view (`views/labs.json`) in full:
+
+```json
+{
+  "name": "labs",
+  "resource": "Observation",
+  "where": [{ "path": "category.coding.where(code='laboratory').exists()" }],
+  "select": [{ "column": [
+    { "name": "date",    "path": "effectiveDateTime" },
+    { "name": "code",    "path": "code.coding.first().code" },
+    { "name": "display", "path": "code.coding.first().display" },
+    { "name": "value",   "path": "valueQuantity.value" },
+    { "name": "unit",    "path": "valueQuantity.unit" }
+  ] }]
+}
+```
+
+| Field | What it does |
+| --- | --- |
+| `name` | Section name. Becomes the `## <name>` heading in the output. |
+| `resource` | The FHIR resource type to read (e.g. `Observation`, `Condition`). |
+| `where` | Optional [FHIRPath](https://hl7.org/fhirpath/) filters — keep only resources that match. Here: only `laboratory` observations. |
+| `select[].column[]` | The columns to extract. Each has a `name` and a FHIRPath `path`. |
+
+Need one row per repeating element (e.g. each component of a blood-pressure
+reading)? A `select` clause also supports `forEach`, which walks a FHIRPath
+collection and emits a row per match:
+
+```json
+{ "forEach": "component", "select": [{ "column": [
+  { "name": "code",  "path": "code.coding.first().display" },
+  { "name": "value", "path": "valueQuantity.value" }
+] }] }
+```
+
+### Adding a resource (or editing an existing one)
+
+1. **Copy the built-in views you want to keep into a directory of your own.**
+   `--views <dir>` *replaces* the built-in set — it doesn't merge with it — so
+   start from the files in [`views/`](views/) rather than from scratch.
+
+2. **Drop in a new `<section>.json`.** Say you want family history:
+
+   ```json
+   {
+     "name": "family-history",
+     "resource": "FamilyMemberHistory",
+     "select": [{ "column": [
+       { "name": "relation", "path": "relationship.coding.first().display" },
+       { "name": "condition", "path": "condition.code.coding.first().display" }
+     ] }]
+   }
+   ```
+
+3. **Run with `--views`:**
+
+   ```bash
+   tokempic --patient <id> --server "$BASE" --token "$TOK" --views ./my-views --out summary.md
+   ```
+
+That's it — no other wiring. Tokempic reads the `resource` fields to decide what
+to fetch (`FamilyMemberHistory` gets added to `Patient/$everything?_type=…`
+automatically), and the default template renders a `## family-history` section
+for any view it finds. New resource, new section, zero template edits.
+
+> **Two things worth knowing:**
+> - The view named **`demographics`** is special — its first row populates the
+>   patient header (name / birth date). Keep one around if you want that line.
+> - Want a different *layout* (not just different fields)? That's the template's
+>   job, not the ViewDefinition's — pass `--template <file>`.
 
 ## Why — size and speed
 
