@@ -7,6 +7,7 @@ import { runView } from './view-runner';
 import { fetchEverything, type FetchLike } from './fhir-client';
 import { hydrateRelatedPersons } from './related-person';
 import { render, type RenderContext } from './render';
+import { anonymize } from './anon';
 import { defaultTemplate } from './default-template';
 import { defaultViews } from './default-views';
 import {
@@ -36,6 +37,7 @@ const options = {
   'max-age': { type: 'string' },
   'no-cache': { type: 'boolean', default: false },
   refresh: { type: 'boolean', default: false },
+  anon: { type: 'boolean', default: false },
 } as const;
 
 export interface RunResult {
@@ -106,6 +108,7 @@ export async function run(argv: string[], fetchImpl?: FetchLike): Promise<RunRes
 
   const byView: Record<string, Row[]> = {};
   for (const v of views) byView[v.name] = runView(v, resources);
+  if (values.anon) for (const v of views) byView[v.name] = anonymize(v, byView[v.name]);
 
   const ctx: RenderContext = { patient: byView['demographics']?.[0] ?? {}, views: byView };
   const template = values.template ? readFileSync(values.template, 'utf8') : defaultTemplate;
