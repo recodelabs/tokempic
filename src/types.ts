@@ -1,6 +1,7 @@
 export interface Column {
   name: string;
   path: string;
+  pii?: boolean;
 }
 
 export interface SelectClause {

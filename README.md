@@ -63,6 +63,7 @@ Options:
 | `--since <date>` | Only fetch resources updated since this point. |
 | `--max-age <dur>` | Skip the server if the cache is younger than this. |
 | `--refresh` | Ignore the cache and do a full fetch. |
+| `--anon` | De-identify the output: drop names/phone/address/IDs, label the patient "Patient", reduce birth dates to the year. |
 | `--no-cache` | Don't read or write the cache at all. |
 | `--cache-dir <dir>` | Store cache files somewhere other than `~/.cache/tokempic/`. |
 
@@ -186,6 +187,43 @@ for any view it finds. New resource, new section, zero template edits.
 >   system is a constant there).
 > - Want a different *layout* (not just different fields)? That's the template's
 >   job, not the ViewDefinition's — pass `--template <file>`.
+
+## Anonymization
+
+Pass `--anon` to produce a de-identified summary — the structured identifiers in
+the record (names, phone, address, IDs) are stripped before rendering:
+
+- The patient's name becomes the label **`Patient`**.
+- Relatives lose their name and phone; their relationship, gender, and birth year remain.
+- Phone, email, address, and identifiers (SSN, MRN, national IDs…) are dropped.
+- Birth dates are reduced to the **year** (`1999-03-04` → `1999`).
+
+It scrubs *structured* fields only — free text inside clinical descriptions or
+notes is passed through untouched, so review those if your views include them.
+
+```markdown
+# Patient Summary — Patient (1999)
+
+## demographics
+- Patient | 1999 | male
+
+## relatedpersons
+- Parent of | male | 2025
+```
+
+Tokempic decides which columns are PII by their **name** — `name`, `given`,
+`family`, `phone`, `telecom`, `email`, `address`, `ssn`, `mrn`, `identifier`,
+and similar. In a custom ViewDefinition you can override this per column:
+
+```json
+{ "name": "nickname", "path": "…", "pii": true }   // force-redact
+{ "name": "orgName",  "path": "…", "pii": false }  // force-keep
+```
+
+> **Caveat — the cache still holds PHI.** `--anon` scrubs *output* only. The
+> local cache under `~/.cache/tokempic/` still stores the raw record with real
+> identifiers. To keep PHI off disk, combine `--anon` with `--no-cache` (or
+> `--refresh`).
 
 ## Why — size and speed
 
