@@ -220,6 +220,32 @@ and similar. In a custom ViewDefinition you can override this per column:
 { "name": "orgName",  "path": "…", "pii": false }  // force-keep
 ```
 
+### How each column is decided
+
+For every column, in this order — the first rule that matches wins:
+
+1. **Explicit `pii` flag** — `pii: true` always redacts and `pii: false` always
+   keeps the value, overriding every rule below (including the birth-date rule).
+2. **Date of birth** — a column whose (lower-cased) name contains `birth` or is
+   exactly `dob` is reduced to its leading 4-digit year: `1999-03-04` → `1999`,
+   `1999` → `1999`. If the value isn't a real date (e.g. a `birthPlace` column
+   holding `Boston`), it's redacted instead of passed through, so a mislabeled
+   column can't leak.
+3. **Name heuristic** — a column whose (lower-cased) name is in the PII list
+   above is redacted.
+4. **Otherwise** — the value is kept as-is.
+
+Only **dates of birth** are reduced. Every other date — condition onset, lab and
+encounter dates, etc. — keeps its full precision, because it's clinically useful
+and, on its own, far less identifying than a DOB. The DOB rule keys off the
+*column name*, not the value, so tokempic never has to guess whether an arbitrary
+date is a birthday.
+
+*Redact* means: in the special `demographics` view (which feeds the patient
+header) the value becomes the label `Patient`; in every other view the value is
+dropped from the row entirely — which is why a relative is left with just their
+relationship, gender, and birth year.
+
 > **Caveat — the cache still holds PHI.** `--anon` scrubs *output* only. The
 > local cache under `~/.cache/tokempic/` still stores the raw record with real
 > identifiers. To keep PHI off disk, combine `--anon` with `--no-cache` (or
