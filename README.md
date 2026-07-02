@@ -190,13 +190,16 @@ for any view it finds. New resource, new section, zero template edits.
 
 ## Anonymization
 
-Pass `--anon` to produce a de-identified summary — safe to paste into a prompt
-without leaking who the patient is:
+Pass `--anon` to produce a de-identified summary — the structured identifiers in
+the record (names, phone, address, IDs) are stripped before rendering:
 
 - The patient's name becomes the label **`Patient`**.
-- Relatives keep only their relationship (their name and phone disappear).
+- Relatives lose their name and phone; their relationship, gender, and birth year remain.
 - Phone, email, address, and identifiers (SSN, MRN, national IDs…) are dropped.
 - Birth dates are reduced to the **year** (`1999-03-04` → `1999`).
+
+It scrubs *structured* fields only — free text inside clinical descriptions or
+notes is passed through untouched, so review those if your views include them.
 
 ```markdown
 # Patient Summary — Patient (1999)
@@ -205,7 +208,7 @@ without leaking who the patient is:
 - Patient | 1999 | male
 
 ## relatedpersons
-- Parent of | male
+- Parent of | male | 2025
 ```
 
 Tokempic decides which columns are PII by their **name** — `name`, `given`,

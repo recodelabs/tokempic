@@ -84,3 +84,27 @@ test('does not mutate the input rows', () => {
   anonymize(demographics, rows);
   expect(rows[0].name).toBe('George Jetson');
 });
+
+test('pii:true on a birth-date column forces full redaction (override beats year)', () => {
+  const view: ViewDefinition = {
+    name: 'x', resource: 'Patient',
+    select: [{ column: [{ name: 'birthDate', path: 'p', pii: true }] }],
+  };
+  expect(anonymize(view, [{ birthDate: '1999-03-04' }])).toEqual([{ birthDate: null }]);
+});
+
+test('pii:false on a birth-date column keeps the full date', () => {
+  const view: ViewDefinition = {
+    name: 'x', resource: 'Patient',
+    select: [{ column: [{ name: 'birthDate', path: 'p', pii: false }] }],
+  };
+  expect(anonymize(view, [{ birthDate: '1999-03-04' }])).toEqual([{ birthDate: '1999-03-04' }]);
+});
+
+test('a birth-named column holding non-date text is redacted, not leaked', () => {
+  const view: ViewDefinition = {
+    name: 'x', resource: 'Patient',
+    select: [{ column: [{ name: 'birthPlace', path: 'p' }] }],
+  };
+  expect(anonymize(view, [{ birthPlace: 'Boston' }])).toEqual([{ birthPlace: null }]);
+});
