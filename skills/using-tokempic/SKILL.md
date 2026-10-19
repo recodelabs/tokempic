@@ -108,7 +108,10 @@ Practical guidance:
 
 - To change *what* is included, point `--views` at a directory of your own
   ViewDefinition JSON files (one per section). Each defines a `name`, a `resource`
-  type, and `select`/`where` clauses using FHIRPath. The built-in set covers
+  type, and `select`/`where` clauses using FHIRPath, and runs as the SQL-on-FHIR v2
+  spec defines it. Choice elements need `ofType()` (`value.ofType(Quantity)`, not
+  `valueQuantity`), and a column returning several values is an error unless it is
+  marked `"collection": true`. The built-in set covers
   demographics, conditions, medications, allergies, labs, vitals, procedures,
   immunizations, encounters, and relatedpersons.
 - To change *how* it's laid out, pass `--template` an `eta` template. The render

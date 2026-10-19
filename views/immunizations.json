@@ -1,9 +1,29 @@
 {
+  "resourceType": "ViewDefinition",
+  "status": "active",
   "name": "immunizations",
   "resource": "Immunization",
-  "select": [{ "column": [
-    { "name": "vaccine", "path": "vaccineCode.coding.first().display" },
-    { "name": "date", "path": "occurrenceDateTime" },
-    { "name": "status", "path": "status" }
-  ] }]
+  "where": [
+    {
+      "path": "status.where($this = 'entered-in-error').empty()"
+    }
+  ],
+  "select": [
+    {
+      "column": [
+        {
+          "name": "vaccine",
+          "path": "iif(vaccineCode.coding.first().display.exists(), vaccineCode.coding.first().display, vaccineCode.text)"
+        },
+        {
+          "name": "date",
+          "path": "occurrence.ofType(dateTime) | occurrence.ofType(string)"
+        },
+        {
+          "name": "status",
+          "path": "status"
+        }
+      ]
+    }
+  ]
 }

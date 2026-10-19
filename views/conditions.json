@@ -1,10 +1,37 @@
 {
+  "resourceType": "ViewDefinition",
+  "status": "active",
   "name": "conditions",
   "resource": "Condition",
-  "select": [{ "column": [
-    { "name": "code", "path": "code.coding.first().code" },
-    { "name": "display", "path": "code.coding.first().display" },
-    { "name": "clinicalStatus", "path": "clinicalStatus.coding.first().code" },
-    { "name": "onset", "path": "onsetDateTime" }
-  ] }]
+  "where": [
+    {
+      "path": "verificationStatus.coding.where(code = 'entered-in-error' or code = 'refuted').empty()"
+    }
+  ],
+  "select": [
+    {
+      "column": [
+        {
+          "name": "code",
+          "path": "code.coding.first().code"
+        },
+        {
+          "name": "display",
+          "path": "iif(code.coding.first().display.exists(), code.coding.first().display, code.text)"
+        },
+        {
+          "name": "clinicalStatus",
+          "path": "clinicalStatus.coding.first().code"
+        },
+        {
+          "name": "verificationStatus",
+          "path": "verificationStatus.coding.first().code"
+        },
+        {
+          "name": "onset",
+          "path": "onset.ofType(dateTime) | onset.ofType(Period).start | onset.ofType(string)"
+        }
+      ]
+    }
+  ]
 }

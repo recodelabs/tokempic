@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "eta": "^3.4.0",
-    "fhirpath": "^3.10.5"
+    "fhirpath": "^5.2.0"
   },
   "devDependencies": {
     "bun-types": "latest"

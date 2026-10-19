@@ -1,9 +1,33 @@
 {
+  "resourceType": "ViewDefinition",
+  "status": "active",
   "name": "allergies",
   "resource": "AllergyIntolerance",
-  "select": [{ "column": [
-    { "name": "substance", "path": "code.coding.first().display" },
-    { "name": "criticality", "path": "criticality" },
-    { "name": "clinicalStatus", "path": "clinicalStatus.coding.first().code" }
-  ] }]
+  "where": [
+    {
+      "path": "verificationStatus.coding.where(code = 'entered-in-error' or code = 'refuted').empty()"
+    }
+  ],
+  "select": [
+    {
+      "column": [
+        {
+          "name": "substance",
+          "path": "iif(code.coding.first().display.exists(), code.coding.first().display, code.text)"
+        },
+        {
+          "name": "reaction",
+          "path": "(reaction.manifestation.coding.display | reaction.manifestation.text).join(', ')"
+        },
+        {
+          "name": "criticality",
+          "path": "criticality"
+        },
+        {
+          "name": "clinicalStatus",
+          "path": "clinicalStatus.coding.first().code"
+        }
+      ]
+    }
+  ]
 }
