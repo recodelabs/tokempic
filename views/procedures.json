@@ -1,9 +1,33 @@
 {
+  "resourceType": "ViewDefinition",
+  "status": "active",
   "name": "procedures",
   "resource": "Procedure",
-  "select": [{ "column": [
-    { "name": "code", "path": "code.coding.first().code" },
-    { "name": "display", "path": "code.coding.first().display" },
-    { "name": "performed", "path": "performedDateTime" }
-  ] }]
+  "where": [
+    {
+      "path": "status.where($this = 'entered-in-error').empty()"
+    }
+  ],
+  "select": [
+    {
+      "column": [
+        {
+          "name": "code",
+          "path": "code.coding.first().code"
+        },
+        {
+          "name": "display",
+          "path": "iif(code.coding.first().display.exists(), code.coding.first().display, code.text)"
+        },
+        {
+          "name": "status",
+          "path": "status"
+        },
+        {
+          "name": "performed",
+          "path": "performed.ofType(dateTime) | performed.ofType(Period).start"
+        }
+      ]
+    }
+  ]
 }

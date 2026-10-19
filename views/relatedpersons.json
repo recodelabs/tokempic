@@ -1,11 +1,32 @@
 {
+  "resourceType": "ViewDefinition",
+  "status": "active",
   "name": "relatedpersons",
   "resource": "RelatedPerson",
-  "select": [{ "column": [
-    { "name": "name", "path": "name.first().select(given.first() & ' ' & family)" },
-    { "name": "relationship", "path": "relationship.first().coding.first().display" },
-    { "name": "gender", "path": "gender" },
-    { "name": "birthDate", "path": "birthDate" },
-    { "name": "phone", "path": "telecom.where(system='phone').first().value" }
-  ] }]
+  "select": [
+    {
+      "column": [
+        {
+          "name": "name",
+          "path": "(name.where(use = 'official') | name).first().select((given.first() & ' ' & family).trim())"
+        },
+        {
+          "name": "relationship",
+          "path": "iif(relationship.exists(), iif(relationship.first().coding.first().display.exists(), relationship.first().coding.first().display, relationship.first().text), {})"
+        },
+        {
+          "name": "gender",
+          "path": "gender"
+        },
+        {
+          "name": "birthDate",
+          "path": "birthDate"
+        },
+        {
+          "name": "phone",
+          "path": "telecom.where(system = 'phone').first().value"
+        }
+      ]
+    }
+  ]
 }

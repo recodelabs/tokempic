@@ -22,11 +22,21 @@ function actionFor(col: Column): Action {
   return PII_NAMES.has(col.name.toLowerCase()) ? 'redact' : 'keep';
 }
 
-/** Walk select + nested forEach select, recording an action per column name. */
+const STRICTNESS: Record<Action, number> = { keep: 0, year: 1, redact: 2 };
+
+/**
+ * Walk select, nested select and unionAll branches, recording an action per
+ * column name. unionAll branches repeat the same names; the strictest wins.
+ */
 function collectActions(select: SelectClause[], into: Map<string, Action>): void {
   for (const clause of select) {
-    if (clause.column) for (const col of clause.column) into.set(col.name, actionFor(col));
+    for (const col of clause.column ?? []) {
+      const action = actionFor(col);
+      const prev = into.get(col.name);
+      if (!prev || STRICTNESS[action] > STRICTNESS[prev]) into.set(col.name, action);
+    }
     if (clause.select) collectActions(clause.select, into);
+    if (clause.unionAll) collectActions(clause.unionAll, into);
   }
 }
 

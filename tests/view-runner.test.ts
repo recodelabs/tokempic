@@ -18,6 +18,24 @@ test('runView projects matching resources into rows', () => {
   expect(runView(view, resources)).toEqual([{ code: 'I10', display: 'Hypertension' }]);
 });
 
+test('runView refuses a column that returns several values, naming the resource', () => {
+  const view: ViewDefinition = {
+    name: 'names', resource: 'Patient',
+    select: [{ column: [{ name: 'given', path: 'name.given' }] }],
+  };
+  const resources = [{ resourceType: 'Patient', id: 'p1', name: [{ given: ['Ann', 'Marie'] }] }];
+  expect(() => runView(view, resources)).toThrow('view names, column given: `name.given` returned 2 values for Patient/p1');
+});
+
+test('runView returns every value of a collection column', () => {
+  const view: ViewDefinition = {
+    name: 'names', resource: 'Patient',
+    select: [{ column: [{ name: 'given', path: 'name.given', collection: true }] }],
+  };
+  const resources = [{ resourceType: 'Patient', id: 'p1', name: [{ given: ['Ann', 'Marie'] }] }];
+  expect(runView(view, resources)).toEqual([{ given: ['Ann', 'Marie'] }]);
+});
+
 test('runView applies where filters', () => {
   const view: ViewDefinition = {
     name: 'labs',

@@ -1,9 +1,33 @@
 {
+  "resourceType": "ViewDefinition",
+  "status": "active",
   "name": "encounters",
   "resource": "Encounter",
-  "select": [{ "column": [
-    { "name": "type", "path": "type.first().coding.first().display" },
-    { "name": "start", "path": "period.start" },
-    { "name": "end", "path": "period.end" }
-  ] }]
+  "where": [
+    {
+      "path": "status.where($this = 'entered-in-error' or $this = 'cancelled').empty()"
+    }
+  ],
+  "select": [
+    {
+      "column": [
+        {
+          "name": "type",
+          "path": "iif(type.exists(), iif(type.first().coding.first().display.exists(), type.first().coding.first().display, type.first().text), class.display)"
+        },
+        {
+          "name": "reason",
+          "path": "iif(reasonCode.exists(), iif(reasonCode.first().coding.first().display.exists(), reasonCode.first().coding.first().display, reasonCode.first().text), {})"
+        },
+        {
+          "name": "start",
+          "path": "period.start"
+        },
+        {
+          "name": "end",
+          "path": "period.end"
+        }
+      ]
+    }
+  ]
 }

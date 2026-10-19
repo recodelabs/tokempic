@@ -1,9 +1,33 @@
 {
+  "resourceType": "ViewDefinition",
+  "status": "active",
   "name": "medications",
   "resource": "MedicationRequest",
-  "select": [{ "column": [
-    { "name": "medication", "path": "medicationCodeableConcept.coding.first().display" },
-    { "name": "status", "path": "status" },
-    { "name": "authoredOn", "path": "authoredOn" }
-  ] }]
+  "where": [
+    {
+      "path": "status.where($this = 'entered-in-error' or $this = 'cancelled').empty()"
+    }
+  ],
+  "select": [
+    {
+      "column": [
+        {
+          "name": "medication",
+          "path": "iif(medication.ofType(CodeableConcept).exists(), iif(medication.ofType(CodeableConcept).coding.first().display.exists(), medication.ofType(CodeableConcept).coding.first().display, medication.ofType(CodeableConcept).text), medication.ofType(Reference).display)"
+        },
+        {
+          "name": "dose",
+          "path": "dosageInstruction.first().text"
+        },
+        {
+          "name": "status",
+          "path": "status"
+        },
+        {
+          "name": "authoredOn",
+          "path": "authoredOn"
+        }
+      ]
+    }
+  ]
 }

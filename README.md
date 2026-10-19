@@ -81,39 +81,41 @@ views/
 ├── procedures.json     vitals.json
 ```
 ### Anatomy of a ViewDefinition
-Here's the labs view (`views/labs.json`) in full:
+Here's the conditions view (`views/conditions.json`) in full:
 
 ```json
 {
-  "name": "labs",
-  "resource": "Observation",
+  "resourceType": "ViewDefinition",
+  "status": "active",
+  "name": "conditions",
+  "resource": "Condition",
   "where": [
     {
-      "path": "category.coding.where(code='laboratory').exists()"
+      "path": "verificationStatus.coding.where(code = 'entered-in-error' or code = 'refuted').empty()"
     }
   ],
   "select": [
     {
       "column": [
         {
-          "name": "date",
-          "path": "effectiveDateTime"
-        },
-        {
           "name": "code",
           "path": "code.coding.first().code"
         },
         {
           "name": "display",
-          "path": "code.coding.first().display"
+          "path": "iif(code.coding.first().display.exists(), code.coding.first().display, code.text)"
         },
         {
-          "name": "value",
-          "path": "valueQuantity.value"
+          "name": "clinicalStatus",
+          "path": "clinicalStatus.coding.first().code"
         },
         {
-          "name": "unit",
-          "path": "valueQuantity.unit"
+          "name": "verificationStatus",
+          "path": "verificationStatus.coding.first().code"
+        },
+        {
+          "name": "onset",
+          "path": "onset.ofType(dateTime) | onset.ofType(Period).start | onset.ofType(string)"
         }
       ]
     }
@@ -123,29 +125,27 @@ Here's the labs view (`views/labs.json`) in full:
 
 | Field | What it does |
 | --- | --- |
+| `resourceType`, `status` | Required by the spec: `"ViewDefinition"` and usually `"active"`. |
 | `name` | Section name. Becomes the `## <name>` heading in the output. |
 | `resource` | The FHIR resource type to read (e.g. `Observation`, `Condition`). |
-| `where` | Optional [FHIRPath](https://hl7.org/fhirpath/) filters — keep only resources that match. Here: only `laboratory` observations. |
+| `where` | Optional [FHIRPath](https://hl7.org/fhirpath/) filters. A resource is kept only if every one returns `true`. Here: drop conditions marked `entered-in-error` or `refuted`. |
 | `select[].column[]` | The columns to extract. Each has a `name` and a FHIRPath `path`. |
 
-Need one row per repeating element (e.g. each component of a blood-pressure reading)? A `select` clause also supports `forEach`, which walks a FHIRPath collection and emits a row per match:
+Tokempic runs ViewDefinitions as the [SQL-on-FHIR v2 spec](https://sql-on-fhir.org/ig/latest/StructureDefinition-ViewDefinition.html) defines them, including `forEach`, `forEachOrNull`, `repeat`, `unionAll`, nested `select`, `constant`, `collection` columns, `getResourceKey()`, `getReferenceKey()` and `%rowIndex`. `tests/conformance.test.ts` runs the official SQL-on-FHIR test suite (140 of 144 cases pass; the 4 others are `lowBoundary()`/`highBoundary()` results fhirpath.js gets wrong).
+
+Three rules to know when writing paths:
+
+- **A column must return at most one value.** If `path` returns several (e.g. `name.given` for a patient with two given names), tokempic stops with an error naming the view, column and resource. Narrow it with `first()` or `where(...)`, or set `"collection": true` to keep them all.
+- **Choice elements use `ofType()`.** Write `value.ofType(Quantity).value` or `effective.ofType(dateTime)`, not `valueQuantity.value` or `effectiveDateTime`. FHIR resources fill in only one variant of a choice element, so a path that names one variant (`performedDateTime`) is empty whenever the record uses another (`performedPeriod`). To cover several variants, combine them with `|`, as `onset` does above. Only one can be present, so the result is still a single value.
+- **Use `iif()` for a fallback between fields that can both be present**, as `display` does above. The FHIRPath spec doesn't fix the order of a `|` union, so `(a | b).first()` isn't a reliable way to prefer `a`.
+
+Need one row per repeating element? A `select` clause can use `forEach`, which walks a FHIRPath collection and emits a row per match. `unionAll` stacks the rows of several clauses. The vitals view uses both, so a blood pressure panel yields one row per component (systolic and diastolic) and other vitals one row for their own value:
 
 ```json
 {
-  "forEach": "component",
-  "select": [
-    {
-      "column": [
-        {
-          "name": "code",
-          "path": "code.coding.first().display"
-        },
-        {
-          "name": "value",
-          "path": "valueQuantity.value"
-        }
-      ]
-    }
+  "unionAll": [
+    { "forEach": "where(value.exists())", "column": [ ... ] },
+    { "forEach": "component", "column": [ ... ] }
   ]
 }
 ```
@@ -155,24 +155,30 @@ Need one row per repeating element (e.g. each component of a blood-pressure read
   
   ```json
   {
+    "resourceType": "ViewDefinition",
+    "status": "active",
     "name": "family-history",
     "resource": "FamilyMemberHistory",
+    "where": [{ "path": "status.where($this = 'entered-in-error').empty()" }],
     "select": [
       {
         "column": [
           {
             "name": "relation",
-            "path": "relationship.coding.first().display"
+            "path": "iif(relationship.coding.first().display.exists(), relationship.coding.first().display, relationship.text)"
           },
           {
             "name": "condition",
-            "path": "condition.code.coding.first().display"
+            "path": "condition.code.select(coding.first().display)",
+            "collection": true
           }
         ]
       }
     ]
   }
   ```
+
+  A relative can have several conditions, so `condition` is a `collection` column, rendered as a comma-separated list. Without that flag, a relative with two conditions would stop the run with an error. `select()` takes the first coding of each condition; `condition.code.coding.first()` would take only the first coding overall.
 3. **Run with** `--views`**:**
   
   ```bash

@@ -79,6 +79,17 @@ test('forEach nested columns are anonymized', () => {
   ]);
 });
 
+test('unionAll branch columns are anonymized, the strictest branch winning', () => {
+  const view: ViewDefinition = {
+    name: 'contacts', resource: 'Patient',
+    select: [{ unionAll: [
+      { forEach: 'contact', column: [{ name: 'who', path: 'x', pii: false }] },
+      { forEach: 'link', column: [{ name: 'who', path: 'x', pii: true }] },
+    ] }],
+  };
+  expect(anonymize(view, [{ who: 'Judy Jetson' }])).toEqual([{ who: null }]);
+});
+
 test('does not mutate the input rows', () => {
   const rows = [{ name: 'George Jetson', gender: 'male' }];
   anonymize(demographics, rows);

@@ -1,12 +1,70 @@
 {
+  "resourceType": "ViewDefinition",
+  "status": "active",
   "name": "vitals",
   "resource": "Observation",
-  "where": [{ "path": "category.coding.where(code='vital-signs').exists()" }],
-  "select": [{ "column": [
-    { "name": "date", "path": "effectiveDateTime" },
-    { "name": "code", "path": "code.coding.first().code" },
-    { "name": "display", "path": "code.coding.first().display" },
-    { "name": "value", "path": "valueQuantity.value" },
-    { "name": "unit", "path": "valueQuantity.unit" }
-  ] }]
+  "where": [
+    {
+      "path": "category.coding.where(code = 'vital-signs').exists()"
+    },
+    {
+      "path": "status.where($this = 'entered-in-error' or $this = 'cancelled').empty()"
+    }
+  ],
+  "select": [
+    {
+      "column": [
+        {
+          "name": "date",
+          "path": "effective.ofType(dateTime) | effective.ofType(Period).start | effective.ofType(instant)"
+        }
+      ]
+    },
+    {
+      "unionAll": [
+        {
+          "forEach": "where(value.exists())",
+          "column": [
+            {
+              "name": "code",
+              "path": "code.coding.first().code"
+            },
+            {
+              "name": "display",
+              "path": "iif(code.coding.first().display.exists(), code.coding.first().display, code.text)"
+            },
+            {
+              "name": "value",
+              "path": "value.ofType(Quantity).value | iif(value.ofType(CodeableConcept).coding.first().display.exists(), value.ofType(CodeableConcept).coding.first().display, value.ofType(CodeableConcept).text) | value.ofType(string) | value.ofType(integer) | value.ofType(boolean)"
+            },
+            {
+              "name": "unit",
+              "path": "iif(value.ofType(Quantity).unit.exists(), value.ofType(Quantity).unit, value.ofType(Quantity).code)"
+            }
+          ]
+        },
+        {
+          "forEach": "component",
+          "column": [
+            {
+              "name": "code",
+              "path": "code.coding.first().code"
+            },
+            {
+              "name": "display",
+              "path": "iif(code.coding.first().display.exists(), code.coding.first().display, code.text)"
+            },
+            {
+              "name": "value",
+              "path": "value.ofType(Quantity).value | iif(value.ofType(CodeableConcept).coding.first().display.exists(), value.ofType(CodeableConcept).coding.first().display, value.ofType(CodeableConcept).text) | value.ofType(string) | value.ofType(integer) | value.ofType(boolean)"
+            },
+            {
+              "name": "unit",
+              "path": "iif(value.ofType(Quantity).unit.exists(), value.ofType(Quantity).unit, value.ofType(Quantity).code)"
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
